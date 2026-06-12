@@ -3,7 +3,9 @@ package com.socialnetwork.shared.web;
 import com.socialnetwork.shared.error.BusinessRuleException;
 import com.socialnetwork.shared.error.ConflictException;
 import com.socialnetwork.shared.error.DomainException;
+import com.socialnetwork.shared.error.ForbiddenException;
 import com.socialnetwork.shared.error.ResourceNotFoundException;
+import com.socialnetwork.shared.error.UnauthorizedException;
 import java.net.URI;
 import java.time.Instant;
 import java.util.Map;
@@ -45,6 +47,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(BusinessRuleException.class)
     ProblemDetail handleBusinessRule(BusinessRuleException ex) {
         return problemOf(HttpStatus.UNPROCESSABLE_ENTITY, ex);
+    }
+
+    @ExceptionHandler(UnauthorizedException.class)
+    ProblemDetail handleUnauthorized(UnauthorizedException ex) {
+        return problemOf(HttpStatus.UNAUTHORIZED, ex);
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    ProblemDetail handleForbidden(ForbiddenException ex) {
+        return problemOf(HttpStatus.FORBIDDEN, ex);
     }
 
     @ExceptionHandler(DomainException.class)

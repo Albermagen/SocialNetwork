@@ -8,10 +8,18 @@ spring:
     redis:
       host: localhost
       port: 6379
-  # Mailpit (SMTP local, UI en http://localhost:8025) — se usará desde la fase 1:
-  # mail:
-  #   host: localhost
-  #   port: 1025
+  # Mailpit (SMTP local, UI en http://localhost:8025)
+  mail:
+    host: localhost
+    port: 1025
+
+app:
+  auth:
+    jwt:
+      # Solo dev: secret estable para que las sesiones sobrevivan a reinicios de la app
+      secret: dev-secret-no-usar-en-produccion-0123456789abcdef
+    cookies:
+      secure: false # sin TLS en local
 
 logging:
   level:

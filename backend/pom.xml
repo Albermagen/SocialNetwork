@@ -77,6 +77,22 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Seguridad: resource server JWT + BCrypt -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+        </dependency>
+
+        <!-- Email (Mailpit en dev; proveedor transaccional en fase 10) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
         <!-- Monolito modular -->
         <dependency>
             <groupId>org.springframework.modulith</groupId>
@@ -101,6 +117,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -167,6 +188,10 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
+                <!-- Boot 3.5.3 trae surefire 3.5.3, que silencia los @ArchTest declarados
+                     en campos (https://github.com/TNG/ArchUnit/issues/1442, SUREFIRE-2298).
+                     3.5.4 lo corrige. Quitar la versión cuando el parent gestione >= 3.5.4 -->
+                <version>3.5.4</version>
                 <configuration>
                     <systemPropertyVariables>
                         <api.version>1.44</api.version>

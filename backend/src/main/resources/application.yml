@@ -30,6 +30,21 @@ management:
       probes:
         enabled: true # /actuator/health/{liveness,readiness}
 
+app:
+  auth:
+    frontend-base-url: http://localhost:3000 # base de los enlaces de los emails
+    jwt:
+      secret: ${APP_JWT_SECRET:} # vacío → clave efímera con warning (solo dev/test)
+      access-ttl: 15m
+    refresh:
+      ttl: 30d
+    verification:
+      ttl: 24h
+    cookies:
+      secure: true # false solo en dev (sin TLS local)
+  cors:
+    allowed-origins: http://localhost:3000
+
 springdoc:
   swagger-ui:
     path: /swagger-ui
