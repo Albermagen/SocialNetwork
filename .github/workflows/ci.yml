@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend — build, tests y fronteras de módulos
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      # verify = compilación (con Error Prone) + tests unitarios e integración
+      # (Testcontainers) + Spring Modulith/ArchUnit + spotless:check
+      - name: Build y verificación
+        run: mvn -B -ntp verify
+
+      - name: Publicar documentación de módulos (C4)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spring-modulith-docs
+          path: backend/target/spring-modulith-docs/
+          if-no-files-found: ignore

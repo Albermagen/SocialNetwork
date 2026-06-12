@@ -1,0 +1,42 @@
+spring:
+  application:
+    name: socialnetwork
+  threads:
+    virtual:
+      enabled: true
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate # el esquema lo gobierna Flyway, nunca Hibernate
+  flyway:
+    locations: classpath:db/migration
+  mvc:
+    problemdetails:
+      enabled: true # RFC 9457 para errores estándar de Spring MVC
+
+server:
+  port: 8080
+  forward-headers-strategy: framework # detrás de NGINX en producción
+  error:
+    include-stacktrace: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true # /actuator/health/{liveness,readiness}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui
+  api-docs:
+    path: /api-docs
+
+info:
+  app:
+    name: SocialNetwork
+    description: Plataforma social de entretenimiento

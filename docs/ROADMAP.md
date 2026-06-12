@@ -1,0 +1,81 @@
+# Roadmap del MVP
+
+> Cada fase termina con tests (unitarios + integración con Testcontainers), migraciones Flyway y endpoints documentados (OpenAPI). No se avanza de fase con deuda crítica.
+>
+> **Restricción económica: coste cero hasta beta local funcional.** Ningún servicio de pago (AWS, dominio, email transaccional, OpenSearch gestionado) hasta que el MVP completo funcione correctamente en local. Todo el desarrollo y la beta corren sobre Docker Compose.
+
+## Fase 0 — Fundaciones
+
+- Esqueleto del monolito modular (Spring Modulith), estructura de carpetas por módulo.
+- Docker Compose (Postgres, Redis, Mailpit; OpenSearch como perfil opcional, no requerido para el MVP), Flyway, perfiles de configuración.
+- CI con GitHub Actions: build, tests, verificación de fronteras de módulos (ArchUnit), análisis estático.
+- Manejo global de errores (RFC 9457, Problem Details), logging estructurado, OpenAPI.
+
+**Hecho cuando:** `docker compose up` + arrancar la app deja un entorno funcional con healthcheck y CI en verde.
+
+## Fase 1 — Autenticación (`auth`)
+
+- Registro + verificación de email (vía Mailpit en dev, sin proveedor de pago), login, JWT access + refresh rotativo (Redis), logout y logout global.
+- Recuperación de contraseña. OAuth2 Google. MFA TOTP opcional (puede deslizarse a fase 7 si bloquea).
+- Rate limiting en endpoints sensibles.
+
+**Hecho cuando:** flujo completo registro→verificación→login→refresh→logout cubierto por tests de integración; revisión OWASP de los endpoints.
+
+## Fase 2 — Usuarios (`user`)
+
+- Perfil: avatar y banner tras `StoragePort` (filesystem local hasta producción; S3 después), bio, visibilidad.
+- Historial de actividad (tabla append-only alimentada por eventos desde el día 1).
+- Estadísticas básicas del perfil (cacheadas).
+
+**Hecho cuando:** perfil público consultable, edición segura (solo dueño), imágenes con validación de tipo/tamaño.
+
+## Fase 3 — Catálogo (`catalog` + `search`)
+
+- Modelo unificado `media_items` + extensiones por tipo.
+- Puerto `MediaMetadataProvider` + adaptadores: **TMDB e IGDB primero** (pelis/series/juegos cubren el grueso del uso); Google Books/Open Library, Jikan y Comic Vine después dentro de la misma fase.
+- Import-on-demand con caché Redis y rate limiting por proveedor. Todas las APIs externas usadas tienen tier gratuito (IGDB vía credenciales Twitch, TMDB no comercial, Google Books, Open Library, Jikan, Comic Vine).
+- Búsqueda: **Postgres FTS + trigram** tras el puerto `SearchPort`, indexación por eventos. OpenSearch queda como adaptador alternativo post-beta (sin coste ni RAM extra mientras tanto).
+
+**Hecho cuando:** buscar un medio inexistente localmente lo importa y lo sirve; caída del proveedor externo no rompe el catálogo local.
+
+## Fase 4 — Listas (`tracking`)
+
+- Estados (pendiente/en progreso/completado/abandonado), favoritos, progreso por tipo de medio.
+- Listas personalizadas públicas/privadas con orden manual.
+- Eventos de actividad para el futuro feed.
+
+**Hecho cuando:** un usuario gestiona su biblioteca completa por tipo de medio y las listas públicas son visibles en su perfil.
+
+## Fase 5 — Reviews (`review`)
+
+- Rating 1–10 + reseña, marca de spoilers (oculta por defecto en UI), likes.
+- Recalculo asíncrono de `avg_rating` en catálogo.
+
+**Hecho cuando:** página de un medio muestra rating agregado y reseñas paginadas; una review por usuario y medio.
+
+## Fase 6 — Social + Feed (`social`, `feed`)
+
+- Follows, posts (con medio adjunto opcional), comentarios anidados (1 nivel), likes.
+- Feed fan-out-on-read con paginación por cursor.
+
+**Hecho cuando:** el feed muestra posts y actividad de seguidos con latencia aceptable; contadores consistentes.
+
+➡️ **Fin del MVP = Beta local.** Todo el stack (backend + frontend web) funcionando en Docker Compose, con datos de prueba (seeds), flujos principales cubiertos por tests e2e y sin deuda crítica. **Sin gasto alguno hasta aquí.** Si hace falta feedback de testers externos, exponer la instancia local con un túnel gratuito (p. ej. Cloudflare Tunnel) antes que contratar hosting.
+
+## Post-beta
+
+| Fase | Alcance |
+|---|---|
+| 7 — Notificaciones | In-app por eventos, WS para tiempo real, preferencias de usuario |
+| 8 — Chat | Conversaciones directas, STOMP/WS, presencia y read receipts en Redis |
+| 9 — App Flutter | Offline-first: SQLite, cola de sync, resolución de conflictos. (La API ya es compatible: paginación por cursor + `updated_at` en DTOs) |
+| 10 — Despliegue en producción | **Primera fase con gasto, solo tras beta validada.** Terraform (escrito ahora, no antes), instancia única + RDS, dominio, TLS, backups, email transaccional real (SES/Resend), S3 para ficheros |
+| 11 — Recomendaciones | Basadas en contenido (géneros/ratings) primero; colaborativas después |
+| 12 — Escalado | OpenSearch (cambio de adaptador en `SearchPort`), extracción de `feed`/`notification`/`chat` a servicios, Kafka/SQS, EKS, feed híbrido fan-out-on-write |
+
+## Riesgos principales
+
+- **Términos de uso de APIs externas** (IGDB requiere credenciales Twitch; TMDB prohíbe uso comercial sin acuerdo): revisar antes de lanzar públicamente.
+- **Alcance**: chat y notificaciones fuera del MVP deliberadamente; resistir la tentación de adelantarlos.
+- **Gasto prematuro**: la regla es coste cero hasta beta validada. Riesgo mitigado por diseño: búsqueda en Postgres (no OpenSearch), Mailpit (no SES), filesystem (no S3), sin Terraform/AWS hasta la fase 10. Cualquier excepción debe justificarse explícitamente.
+- **Coste en producción** (fase 10+): mantener una sola instancia hasta tener usuarios; OpenSearch gestionado es lo más caro — seguir con Postgres FTS en producción mientras el volumen lo permita.
