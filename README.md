@@ -2,9 +2,12 @@
 
 Monolito modular (Spring Modulith) para tracking social de videojuegos, películas, series, libros, cómics, manga y anime. Documentación de diseño en [docs/](docs/).
 
-## Estado: Fase 0 — Fundaciones ✅
+## Estado
 
-Esqueleto del backend con fronteras de módulos verificadas, entorno local reproducible con Docker Compose y CI.
+- **Fase 0 — Fundaciones ✅** Esqueleto Spring Modulith con fronteras verificadas (ArchUnit), Docker Compose, CI, Problem Details (RFC 9457), logging estructurado y OpenAPI.
+- **Fase 1 — Autenticación 🔄** Core completado: registro, verificación de email (Mailpit), login con JWT en cookies httpOnly, refresh rotativo con detección de reuso por familia (Redis), logout/logout global y rate limiting por IP. Pendiente: recuperación de contraseña, OAuth2 Google y MFA TOTP.
+
+Endpoints actuales en `/api/auth`: `register`, `verify-email`, `resend-verification`, `login`, `refresh`, `logout`, `logout-all`, `me` (detalle en Swagger UI).
 
 ## Requisitos
 
@@ -20,8 +23,10 @@ docker compose up -d
 
 # 2. Backend con perfil dev
 cd backend
-mvn spring-boot:run -Dspring-boot.run.profiles=dev
+mvn spring-boot:run "-Dspring-boot.run.profiles=dev"   # las comillas son necesarias en PowerShell
 ```
+
+Flujo rápido de prueba: registra un usuario en Swagger UI → el email de verificación llega a Mailpit (http://localhost:8025) → `POST /api/auth/verify-email` con el token del enlace → `POST /api/auth/login`.
 
 Verificación: <http://localhost:8080/actuator/health> debe responder `{"status":"UP"}`.
 

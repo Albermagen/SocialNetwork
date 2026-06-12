@@ -4,22 +4,24 @@
 >
 > **Restricción económica: coste cero hasta beta local funcional.** Ningún servicio de pago (AWS, dominio, email transaccional, OpenSearch gestionado) hasta que el MVP completo funcione correctamente en local. Todo el desarrollo y la beta corren sobre Docker Compose.
 
-## Fase 0 — Fundaciones
+## Fase 0 — Fundaciones ✅ (completada 2026-06-12)
 
 - Esqueleto del monolito modular (Spring Modulith), estructura de carpetas por módulo.
 - Docker Compose (Postgres, Redis, Mailpit; OpenSearch como perfil opcional, no requerido para el MVP), Flyway, perfiles de configuración.
 - CI con GitHub Actions: build, tests, verificación de fronteras de módulos (ArchUnit), análisis estático.
 - Manejo global de errores (RFC 9457, Problem Details), logging estructurado, OpenAPI.
 
-**Hecho cuando:** `docker compose up` + arrancar la app deja un entorno funcional con healthcheck y CI en verde.
+**Hecho cuando:** `docker compose up` + arrancar la app deja un entorno funcional con healthcheck y CI en verde. ✅
 
-## Fase 1 — Autenticación (`auth`)
+## Fase 1 — Autenticación (`auth`) 🔄 en curso
 
-- Registro + verificación de email (vía Mailpit en dev, sin proveedor de pago), login, JWT access + refresh rotativo (Redis), logout y logout global.
-- Recuperación de contraseña. OAuth2 Google. MFA TOTP opcional (puede deslizarse a fase 7 si bloquea).
-- Rate limiting en endpoints sensibles.
+- [x] Registro + verificación de email (vía Mailpit en dev, sin proveedor de pago), login, JWT access (cookie httpOnly) + refresh rotativo con detección de reuso por familia (Redis), logout y logout global.
+- [x] Rate limiting en endpoints sensibles (por IP, Redis).
+- [ ] Recuperación de contraseña (reutiliza `email_tokens` con `type=RESET`).
+- [ ] OAuth2 Google.
+- [ ] MFA TOTP opcional (puede deslizarse a fase 7 si bloquea).
 
-**Hecho cuando:** flujo completo registro→verificación→login→refresh→logout cubierto por tests de integración; revisión OWASP de los endpoints.
+**Hecho cuando:** flujo completo registro→verificación→login→refresh→logout cubierto por tests de integración ✅ (`AuthFlowIntegrationTest`); revisión OWASP de los endpoints (al cerrar la fase).
 
 ## Frontend web — en paralelo desde el fin de la Fase 1
 

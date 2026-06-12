@@ -1,6 +1,6 @@
 # Arquitectura — Plataforma Social de Entretenimiento
 
-> Estado: Diseño aprobado · Última actualización: 2026-06-11
+> Estado: En implementación (fase 1) · Última actualización: 2026-06-12
 
 ## 1. Decisión global: Monolito Modular
 
@@ -135,9 +135,9 @@ Estrategia **import-on-demand**: cuando un usuario busca/añade un medio que no 
 
 ## 7. Seguridad (resumen; ver diseño por endpoint en cada módulo)
 
-- **JWT access token** corto (15 min) + **refresh token** rotativo con detección de reuso, almacenado en Redis (revocable) y enviado como cookie `HttpOnly` `Secure` `SameSite=Strict` en web; almacenamiento seguro nativo en Flutter.
+- **JWT access token** corto (15 min, HS256) en cookie `HttpOnly` `Secure` `SameSite=Lax` con `Path=/`; **refresh token** opaco rotativo con detección de reuso por familia, almacenado en Redis (revocable, logout global) y enviado en cookie `HttpOnly` `Secure` `SameSite=Strict` confinada a `Path=/api/auth`. El resolver acepta también `Authorization: Bearer` (app Flutter). HMAC simétrico mientras emisor y validador son el mismo monolito; RSA/EdDSA + JWKS al extraer servicios.
 - OAuth2 (Google/GitHub) vía Spring Security `oauth2-client`, vinculado a cuenta local.
-- Contraseñas con **Argon2id**. MFA TOTP opcional.
+- Contraseñas con **BCrypt (factor 12)** tras el puerto `PasswordHasher` (sin dependencias extra; migrar a Argon2id solo requiere cambiar el adaptador). MFA TOTP opcional.
 - OWASP: validación de entrada (Bean Validation), CORS restrictivo, headers de seguridad en NGINX, rate limiting por IP+usuario, protección contra enumeración de cuentas, paginación obligatoria.
 - Autorización por método (`@PreAuthorize`) + comprobación de propiedad en casos de uso, nunca solo en el controlador.
 
