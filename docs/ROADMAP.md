@@ -21,6 +21,27 @@
 
 **Hecho cuando:** flujo completo registro→verificación→login→refresh→logout cubierto por tests de integración; revisión OWASP de los endpoints.
 
+## Frontend web — en paralelo desde el fin de la Fase 1
+
+El frontend (Next.js + TypeScript + Tailwind + shadcn/ui + TanStack Query + Zustand) no espera al final del MVP: cada fase de backend se cierra con su slice vertical de UI, para validar la API (DTOs, paginación, errores) cuando aún es barato corregirla.
+
+**Prerrequisito UX (ligero, antes del primer componente):**
+
+- Arquitectura de información: navegación principal y jerarquía de pantallas (ficha de medio, biblioteca, perfil, feed).
+- Wireframes low-fi de los 5–6 flujos clave (Figma/Excalidraw), con Letterboxd, Trakt y Goodreads como referentes.
+- Design tokens (color, tipografía, espaciado) directamente como tema de Tailwind + shadcn/ui. Sin mockups high-fidelity ni design system propio.
+
+| Tras fase backend | Slice de frontend |
+|---|---|
+| 1 — Auth | Setup del proyecto, tema, layout base; registro, login, verificación, recuperación de contraseña |
+| 2 — Usuarios | Perfil público y edición (avatar, banner, bio), estadísticas |
+| 3 — Catálogo | Búsqueda y ficha de medio |
+| 4 — Listas | Biblioteca por tipo de medio, listas personalizadas |
+| 5 — Reviews | Rating y reseñas en la ficha de medio (spoilers ocultos por defecto) |
+| 6 — Social | Feed, posts, comentarios, follows |
+
+**Hecho cuando** (por slice): la funcionalidad de la fase es usable end-to-end desde el navegador contra el backend local.
+
 ## Fase 2 — Usuarios (`user`)
 
 - Perfil: avatar y banner tras `StoragePort` (filesystem local hasta producción; S3 después), bio, visibilidad.

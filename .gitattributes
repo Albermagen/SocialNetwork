@@ -1,0 +1,17 @@
+# Normalización de finales de línea: LF en el repo y en el working tree.
+# Evita el ruido CRLF/LF entre Windows y CI (Linux).
+* text=auto eol=lf
+
+# Scripts de Windows necesitan CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binarios
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.jar binary
+*.zip binary
