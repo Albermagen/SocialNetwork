@@ -17,7 +17,7 @@ public class UserAccount {
     private final UUID id;
     private final String username;
     private final String email;
-    private final String passwordHash; // null cuando la cuenta sea solo OAuth (iteración OAuth2)
+    private String passwordHash; // null cuando la cuenta sea solo OAuth (iteración OAuth2)
     private boolean emailVerified;
     private final Role role;
     private AccountStatus status;
@@ -63,6 +63,24 @@ public class UserAccount {
         return new UserAccount(id, username, email, passwordHash, false, Role.USER, AccountStatus.ACTIVE, now, now);
     }
 
+    /**
+     * Alta por login social (sin contraseña). El estado de verificación lo dicta el proveedor: con
+     * un email verificado por Google la cuenta nace ya verificada.
+     */
+    public static UserAccount registerOauth(UUID id, String username, String email, boolean emailVerified) {
+        if (id == null) {
+            throw new IllegalArgumentException("id requerido");
+        }
+        if (username == null || !USERNAME.matcher(username).matches()) {
+            throw new IllegalArgumentException("username inválido: 3-30 caracteres [A-Za-z0-9_]");
+        }
+        if (email == null || !email.contains("@") || email.length() > 255) {
+            throw new IllegalArgumentException("email inválido");
+        }
+        Instant now = Instant.now();
+        return new UserAccount(id, username, email, null, emailVerified, Role.USER, AccountStatus.ACTIVE, now, now);
+    }
+
     /** Reconstrucción desde persistencia, sin validar invariantes de alta. */
     public static UserAccount restore(
             UUID id,
@@ -83,6 +101,19 @@ public class UserAccount {
             this.emailVerified = true;
             touch();
         }
+    }
+
+    /**
+     * Fija un nuevo hash de contraseña (recuperación o cambio). Completar un reset prueba el control
+     * del buzón, así que también deja el email verificado.
+     */
+    public void changePassword(String newPasswordHash) {
+        if (newPasswordHash == null || newPasswordHash.isBlank()) {
+            throw new IllegalArgumentException("passwordHash requerido");
+        }
+        this.passwordHash = newPasswordHash;
+        this.emailVerified = true;
+        touch();
     }
 
     /** Solo las cuentas activas pueden autenticarse; suspendidas y borradas no. */

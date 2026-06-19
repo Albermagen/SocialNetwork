@@ -40,10 +40,27 @@ app:
       ttl: 30d
     verification:
       ttl: 24h
+    reset:
+      ttl: 1h # token de recuperación de contraseña (ventana corta)
+    oauth:
+      success-path: /oauth/callback # ruta del frontend tras login social correcto
+      failure-path: /login?error=oauth
     cookies:
       secure: true # false solo en dev (sin TLS local)
   cors:
     allowed-origins: http://localhost:3000
+
+# OAuth2 (login social con Google). Deshabilitado salvo que se definan las credenciales: basta con
+# exportar GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET (Spring rellena el resto del proveedor "google").
+# La URI de redirección a registrar en Google Cloud es {baseUrl}/login/oauth2/code/google.
+#   security:
+#     oauth2:
+#       client:
+#         registration:
+#           google:
+#             client-id: ${GOOGLE_CLIENT_ID}
+#             client-secret: ${GOOGLE_CLIENT_SECRET}
+#             scope: openid,email,profile
 
 springdoc:
   swagger-ui:

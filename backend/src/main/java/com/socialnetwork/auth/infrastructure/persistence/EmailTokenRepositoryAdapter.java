@@ -4,6 +4,7 @@ import com.socialnetwork.auth.domain.EmailToken;
 import com.socialnetwork.auth.domain.EmailTokenRepository;
 import com.socialnetwork.auth.domain.EmailTokenType;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 /** Adaptador del puerto {@link EmailTokenRepository} sobre Spring Data JPA. */
@@ -24,5 +25,10 @@ class EmailTokenRepositoryAdapter implements EmailTokenRepository {
     @Override
     public EmailToken save(EmailToken token) {
         return jpa.save(EmailTokenEntity.fromDomain(token)).toDomain();
+    }
+
+    @Override
+    public void deleteByUserIdAndType(UUID userId, EmailTokenType type) {
+        jpa.deleteByUserIdAndType(userId, type);
     }
 }

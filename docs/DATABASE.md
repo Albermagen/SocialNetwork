@@ -11,18 +11,22 @@ users
 ├── role (USER|MODERATOR|ADMIN), status (ACTIVE|SUSPENDED|DELETED)
 └── created_at, updated_at
 
-oauth_accounts            user_profiles                  mfa_settings
-├── user_id FK            ├── user_id PK/FK              ├── user_id PK/FK
-├── provider              ├── display_name, bio          ├── totp_secret (cifrado)
-├── provider_user_id      ├── avatar_url, banner_url     ├── enabled bool
-└── UNIQUE(provider,      ├── location, website          └── recovery_codes (hash[])
-    provider_user_id)     └── visibility (PUBLIC|PRIVATE)
-
-email_tokens (verificación + reset password)
+oauth_identities          user_profiles                  mfa_credentials
+├── id PK                 ├── user_id PK/FK              ├── user_id PK/FK
+├── user_id FK            ├── display_name, bio          ├── secret (Base32; cifrado pendiente)
+├── provider (GOOGLE)     ├── avatar_url, banner_url     ├── enabled bool
+├── provider_user_id      ├── location, website          └── created_at, confirmed_at
+├── email                 └── visibility (PUBLIC|PRIVATE)
+└── UNIQUE(provider,                                     mfa_recovery_codes
+    provider_user_id)                                    ├── id PK, user_id FK
+                                                         ├── code_hash UNIQUE, used_at
+email_tokens (verificación + reset password)             └── created_at
 ├── user_id FK, token_hash, type (VERIFY|RESET), expires_at, used_at, created_at
 ```
 
-Refresh tokens: **en Redis**, no en Postgres (`refresh:{tokenId}` → userId, familia, expiración TTL).
+> Estado de implementación (fase 1): `users`, `email_tokens`, `oauth_identities`, `mfa_credentials` y `mfa_recovery_codes` ya existen (migraciones `V2`–`V4`). `user_profiles` llega en la fase 2. Códigos de recuperación MFA: tabla propia con hash y un solo uso (no array). Mejora pendiente (fase 10): cifrar `mfa_credentials.secret` en reposo.
+
+Refresh tokens: **en Redis**, no en Postgres (`auth:rt:{hash}` → userId+familia, TTL). El reto MFA entre los dos pasos del login también vive en Redis (`auth:mfa:{hash}` → userId, TTL corto).
 
 `user_activity` (historial): tabla append-only `(id, user_id, type, target_type, target_id, occurred_at)`, particionada por mes cuando crezca. Las estadísticas del perfil se calculan con vistas materializadas o contadores cacheados en Redis, no en caliente.
 

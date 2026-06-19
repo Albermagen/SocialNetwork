@@ -37,6 +37,22 @@ class UserAccountTest {
     }
 
     @Test
+    void changePasswordSetsHashAndVerifiesEmail() {
+        UserAccount account = UserAccount.register(Uuids.v7(), "alberto", "alberto@example.com", "$2a$12$old");
+
+        account.changePassword("$2a$12$new");
+
+        assertThat(account.passwordHash()).isEqualTo("$2a$12$new");
+        assertThat(account.emailVerified()).isTrue(); // completar un reset prueba el control del buzón
+    }
+
+    @Test
+    void changePasswordRejectsBlankHash() {
+        UserAccount account = UserAccount.register(Uuids.v7(), "alberto", "alberto@example.com", "$2a$12$old");
+        assertThatIllegalArgumentException().isThrownBy(() -> account.changePassword("  "));
+    }
+
+    @Test
     void suspendedAccountCannotAuthenticate() {
         UserAccount account = UserAccount.restore(
                 Uuids.v7(),

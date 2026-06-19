@@ -17,11 +17,11 @@
 
 - [x] Registro + verificación de email (vía Mailpit en dev, sin proveedor de pago), login, JWT access (cookie httpOnly) + refresh rotativo con detección de reuso por familia (Redis), logout y logout global.
 - [x] Rate limiting en endpoints sensibles (por IP, Redis).
-- [ ] Recuperación de contraseña (reutiliza `email_tokens` con `type=RESET`).
-- [ ] OAuth2 Google.
-- [ ] MFA TOTP opcional (puede deslizarse a fase 7 si bloquea).
+- [x] Recuperación de contraseña (reutiliza `email_tokens` con `type=RESET`; revoca todas las sesiones al cambiar la contraseña). Test: `PasswordResetIntegrationTest`.
+- [x] OAuth2 Google (login social stateless: authorization-request en cookie firmada con HMAC; account linking solo con email verificado por el proveedor; cuentas solo-OAuth sin contraseña). Test: `OauthLoginServiceTest`.
+- [x] MFA TOTP opcional (login en dos pasos con reto en Redis, códigos de recuperación de un solo uso, librería TOTP tras el puerto `TotpService`). Test: `MfaIntegrationTest`.
 
-**Hecho cuando:** flujo completo registro→verificación→login→refresh→logout cubierto por tests de integración ✅ (`AuthFlowIntegrationTest`); revisión OWASP de los endpoints (al cerrar la fase).
+**Hecho cuando:** flujo completo registro→verificación→login→refresh→logout cubierto por tests de integración ✅ (`AuthFlowIntegrationTest`); recuperación de contraseña, OAuth2 y MFA con sus tests ✅; revisión OWASP de los endpoints (al cerrar la fase).
 
 ## Frontend web — en paralelo desde el fin de la Fase 1
 

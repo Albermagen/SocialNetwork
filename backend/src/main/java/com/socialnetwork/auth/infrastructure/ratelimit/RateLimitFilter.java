@@ -33,7 +33,10 @@ class RateLimitFilter extends OncePerRequestFilter {
             "/api/auth/login", new Rule(10, Duration.ofMinutes(1)),
             "/api/auth/register", new Rule(5, Duration.ofMinutes(15)),
             "/api/auth/resend-verification", new Rule(3, Duration.ofMinutes(15)),
-            "/api/auth/verify-email", new Rule(10, Duration.ofMinutes(15)));
+            "/api/auth/verify-email", new Rule(10, Duration.ofMinutes(15)),
+            "/api/auth/forgot-password", new Rule(3, Duration.ofMinutes(15)),
+            "/api/auth/reset-password", new Rule(10, Duration.ofMinutes(15)),
+            "/api/auth/login/mfa", new Rule(10, Duration.ofMinutes(5)));
 
     private final StringRedisTemplate redis;
     private final ObjectMapper objectMapper;

@@ -1,6 +1,7 @@
 package com.socialnetwork.auth.application;
 
 import com.socialnetwork.auth.application.port.AccessTokenIssuer;
+import com.socialnetwork.auth.application.port.MfaChallengeStore;
 import com.socialnetwork.auth.application.port.PasswordHasher;
 import com.socialnetwork.auth.application.port.RefreshTokenStore;
 import com.socialnetwork.auth.domain.UserAccount;
@@ -19,6 +20,8 @@ public class AuthenticationService {
     private final PasswordHasher passwordHasher;
     private final AccessTokenIssuer accessTokens;
     private final RefreshTokenStore refreshTokens;
+    private final MfaService mfaService;
+    private final MfaChallengeStore mfaChallenges;
     private final AuthProperties properties;
 
     public AuthenticationService(
@@ -26,16 +29,24 @@ public class AuthenticationService {
             PasswordHasher passwordHasher,
             AccessTokenIssuer accessTokens,
             RefreshTokenStore refreshTokens,
+            MfaService mfaService,
+            MfaChallengeStore mfaChallenges,
             AuthProperties properties) {
         this.users = users;
         this.passwordHasher = passwordHasher;
         this.accessTokens = accessTokens;
         this.refreshTokens = refreshTokens;
+        this.mfaService = mfaService;
+        this.mfaChallenges = mfaChallenges;
         this.properties = properties;
     }
 
-    @Transactional(readOnly = true)
-    public AuthSession login(String identifier, String password) {
+    /**
+     * Primer paso del login: valida la contraseña y el estado de la cuenta. Si el usuario tiene MFA
+     * activo, no abre sesión: devuelve un reto para el segundo factor (ver {@link #completeMfaLogin}).
+     */
+    @Transactional
+    public LoginOutcome login(String identifier, String password) {
         var account = users.findByIdentifier(identifier).orElseThrow(this::invalidCredentials);
         if (account.passwordHash() == null || !passwordHasher.matches(password, account.passwordHash())) {
             throw invalidCredentials();
@@ -46,6 +57,39 @@ public class AuthenticationService {
         if (!account.emailVerified()) {
             throw new ForbiddenException("email_not_verified", "Verifica tu email antes de iniciar sesión");
         }
+        if (mfaService.isEnabled(account.id())) {
+            return LoginOutcome.mfaChallenge(
+                    mfaChallenges.issue(account.id()), properties.mfa().challengeTtl());
+        }
+        return LoginOutcome.authenticated(session(account, refreshTokens.issue(account.id())));
+    }
+
+    /** Segundo paso del login: valida el reto MFA y el código (TOTP o recuperación), y abre sesión. */
+    @Transactional
+    public AuthSession completeMfaLogin(String challengeToken, String code) {
+        UUID userId = mfaChallenges
+                .resolve(challengeToken)
+                .orElseThrow(() -> new UnauthorizedException("invalid_mfa_challenge", "Reto MFA no válido o caducado"));
+        if (!mfaService.verify(userId, code)) {
+            // El reto sobrevive a un código mal tecleado (limitado por rate limiting y TTL).
+            throw new UnauthorizedException("invalid_mfa_code", "Código incorrecto");
+        }
+        var account = users.findById(userId)
+                .filter(UserAccount::canAuthenticate)
+                .orElseThrow(() -> new UnauthorizedException("invalid_mfa_challenge", "Reto MFA no válido"));
+        mfaChallenges.invalidate(challengeToken);
+        return session(account, refreshTokens.issue(account.id()));
+    }
+
+    /**
+     * Abre una sesión para una cuenta ya autenticada por otro medio (login social). No comprueba
+     * contraseña: el llamante garantiza la identidad (p. ej. OAuth2 verificado por el proveedor).
+     */
+    @Transactional(readOnly = true)
+    public AuthSession startSession(UUID userId) {
+        var account = users.findById(userId)
+                .filter(UserAccount::canAuthenticate)
+                .orElseThrow(() -> new ForbiddenException("account_disabled", "La cuenta no está activa"));
         return session(account, refreshTokens.issue(account.id()));
     }
 

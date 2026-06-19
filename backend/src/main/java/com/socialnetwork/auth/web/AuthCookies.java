@@ -18,6 +18,7 @@ public class AuthCookies {
 
     public static final String ACCESS_TOKEN = "access_token";
     public static final String REFRESH_TOKEN = "refresh_token";
+    public static final String MFA_TOKEN = "mfa_token";
     static final String REFRESH_PATH = "/api/auth";
 
     private final AuthProperties properties;
@@ -26,14 +27,33 @@ public class AuthCookies {
         this.properties = properties;
     }
 
-    void write(HttpServletResponse response, AuthSession session) {
+    public void write(HttpServletResponse response, AuthSession session) {
         add(response, accessCookie(session.accessToken(), session.accessTtl()));
         add(response, refreshCookie(session.refreshToken(), session.refreshTtl()));
     }
 
-    void clear(HttpServletResponse response) {
+    public void clear(HttpServletResponse response) {
         add(response, accessCookie("", Duration.ZERO));
         add(response, refreshCookie("", Duration.ZERO));
+    }
+
+    /** Reto MFA entre los dos pasos del login: vida corta, confinado a {@code /api/auth}, SameSite Strict. */
+    public void writeMfaChallenge(HttpServletResponse response, String token, Duration ttl) {
+        add(response, mfaCookie(token, ttl));
+    }
+
+    public void clearMfaChallenge(HttpServletResponse response) {
+        add(response, mfaCookie("", Duration.ZERO));
+    }
+
+    private ResponseCookie mfaCookie(String value, Duration maxAge) {
+        return ResponseCookie.from(MFA_TOKEN, value)
+                .httpOnly(true)
+                .secure(properties.cookies().secure())
+                .path(REFRESH_PATH)
+                .sameSite("Strict")
+                .maxAge(maxAge)
+                .build();
     }
 
     private ResponseCookie accessCookie(String value, Duration maxAge) {

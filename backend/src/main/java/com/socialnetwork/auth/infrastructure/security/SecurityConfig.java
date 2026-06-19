@@ -10,6 +10,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -20,6 +21,9 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.AuthorizationRequestRepository;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
@@ -27,6 +31,8 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -47,7 +53,13 @@ class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(
-            HttpSecurity http, BearerTokenResolver bearerTokenResolver, JwtAuthenticationConverter jwtConverter)
+            HttpSecurity http,
+            BearerTokenResolver bearerTokenResolver,
+            JwtAuthenticationConverter jwtConverter,
+            ObjectProvider<ClientRegistrationRepository> clientRegistrationRepository,
+            AuthorizationRequestRepository<OAuth2AuthorizationRequest> authorizationRequestRepository,
+            AuthenticationSuccessHandler oauthSuccessHandler,
+            AuthenticationFailureHandler oauthFailureHandler)
             throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
@@ -57,9 +69,14 @@ class SecurityConfig {
                                 "/api/auth/register",
                                 "/api/auth/verify-email",
                                 "/api/auth/resend-verification",
+                                "/api/auth/forgot-password",
+                                "/api/auth/reset-password",
                                 "/api/auth/login",
+                                "/api/auth/login/mfa",
                                 "/api/auth/refresh",
                                 "/api/auth/logout")
+                        .permitAll()
+                        .requestMatchers("/oauth2/**", "/login/oauth2/**")
                         .permitAll()
                         .requestMatchers("/actuator/health/**", "/actuator/info")
                         .permitAll()
@@ -69,6 +86,15 @@ class SecurityConfig {
                         .authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.bearerTokenResolver(bearerTokenResolver)
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtConverter)));
+
+        // El login social solo se activa si hay credenciales OAuth2 (registro de cliente presente).
+        // Sin ellas (dev/test/CI por defecto), la app arranca como resource-server puro.
+        if (clientRegistrationRepository.getIfAvailable() != null) {
+            http.oauth2Login(oauth -> oauth.authorizationEndpoint(
+                            endpoint -> endpoint.authorizationRequestRepository(authorizationRequestRepository))
+                    .successHandler(oauthSuccessHandler)
+                    .failureHandler(oauthFailureHandler));
+        }
         return http.build();
     }
 

@@ -5,9 +5,25 @@ Monolito modular (Spring Modulith) para tracking social de videojuegos, películ
 ## Estado
 
 - **Fase 0 — Fundaciones ✅** Esqueleto Spring Modulith con fronteras verificadas (ArchUnit), Docker Compose, CI, Problem Details (RFC 9457), logging estructurado y OpenAPI.
-- **Fase 1 — Autenticación 🔄** Core completado: registro, verificación de email (Mailpit), login con JWT en cookies httpOnly, refresh rotativo con detección de reuso por familia (Redis), logout/logout global y rate limiting por IP. Pendiente: recuperación de contraseña, OAuth2 Google y MFA TOTP.
+- **Fase 1 — Autenticación 🔄** Registro, verificación de email (Mailpit), login con JWT en cookies httpOnly, refresh rotativo con detección de reuso por familia (Redis), logout/logout global y rate limiting por IP. Añadido: **recuperación de contraseña**, **OAuth2 Google** y **MFA TOTP opcional**. Pendiente de cierre de fase: revisión OWASP final.
 
-Endpoints actuales en `/api/auth`: `register`, `verify-email`, `resend-verification`, `login`, `refresh`, `logout`, `logout-all`, `me` (detalle en Swagger UI).
+Endpoints en `/api/auth` (detalle en Swagger UI):
+
+- Cuenta: `register`, `verify-email`, `resend-verification`, `forgot-password`, `reset-password`.
+- Sesión: `login`, `login/mfa`, `refresh`, `logout`, `logout-all`, `me`.
+- MFA (autenticado): `mfa/enroll`, `mfa/confirm`, `mfa/disable`, `mfa/status`.
+- OAuth2: iniciar en `GET /oauth2/authorization/google`; Google redirige a `/login/oauth2/code/google`.
+
+### Login social con Google (opcional)
+
+Deshabilitado salvo que se definan credenciales. Crea un OAuth Client ID en Google Cloud (URI de redirección `http://localhost:8080/login/oauth2/code/google` en dev) y exporta antes de arrancar el backend las variables canónicas de Spring (el `registration-id` `google` es un proveedor conocido: el resto —endpoints y scopes— lo rellena Spring):
+
+```bash
+export SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID=...
+export SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET=...
+```
+
+Spring activa el flujo automáticamente cuando detecta el registro; sin estas variables la app arranca como resource-server puro. (Alternativa: descomentar el bloque `spring.security.oauth2` de `application.yml`.)
 
 ## Requisitos
 

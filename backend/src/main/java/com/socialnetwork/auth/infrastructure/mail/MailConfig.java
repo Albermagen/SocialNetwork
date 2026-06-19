@@ -1,6 +1,7 @@
 package com.socialnetwork.auth.infrastructure.mail;
 
 import com.socialnetwork.auth.application.AuthProperties;
+import com.socialnetwork.auth.application.port.PasswordResetMailer;
 import com.socialnetwork.auth.application.port.VerificationMailer;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -22,5 +23,17 @@ class MailConfig {
     @ConditionalOnMissingBean(VerificationMailer.class)
     VerificationMailer loggingVerificationMailer(AuthProperties properties) {
         return new LoggingVerificationMailer(properties);
+    }
+
+    @Bean
+    @ConditionalOnProperty("spring.mail.host")
+    PasswordResetMailer smtpPasswordResetMailer(JavaMailSender mailSender, AuthProperties properties) {
+        return new SmtpPasswordResetMailer(mailSender, properties);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(PasswordResetMailer.class)
+    PasswordResetMailer loggingPasswordResetMailer(AuthProperties properties) {
+        return new LoggingPasswordResetMailer(properties);
     }
 }
